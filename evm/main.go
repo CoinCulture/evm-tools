@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -34,6 +35,10 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/logger/glog"
 	"gopkg.in/urfave/cli.v1"
+)
+
+const (
+	LatestStateRootKey = "evm:LatestStateRootKey"
 )
 
 type message struct {
@@ -121,9 +126,13 @@ var (
 	}
 
 	// state options
-	StateFlag = cli.StringFlag{
-		Name:  "state",
+	DataDirFlag = cli.StringFlag{
+		Name:  "datadir",
 		Usage: "directory to load/store persistent state",
+	}
+	RootFlag = cli.StringFlag{
+		Name:  "root",
+		Usage: "state root to load",
 	}
 	CreateFlag = cli.BoolFlag{
 		Name:  "create",
@@ -166,18 +175,30 @@ var (
 func init() {
 	app = utils.NewApp("0.2", "the evm command line interface")
 	app.Flags = []cli.Flag{
-		CreateFlag,
 		DebugFlag,
 		VerbosityFlag,
+		SysStatFlag,
+		DumpFlag,
+
 		ForceJitFlag,
 		DisableJitFlag,
-		SysStatFlag,
+
 		CodeFlag,
 		GasFlag,
 		PriceFlag,
 		ValueFlag,
-		DumpFlag,
 		InputFlag,
+		FromFlag,
+		ToFlag,
+
+		DataDirFlag,
+		RootFlag,
+		CreateFlag,
+
+		DifficultyFlag,
+		NumberFlag,
+		GasLimitFlag,
+		TimeFlag,
 	}
 	app.Action = run
 }
@@ -186,11 +207,61 @@ func run(ctx *cli.Context) error {
 	glog.SetToStderr(true)
 	glog.SetV(ctx.GlobalInt(VerbosityFlag.Name))
 
-	// TODO: if stateful ...
+	dataDir := ctx.GlobalString(DataDirFlag.Name)
+	rootHash := common.Hash{}
+	var db ethdb.Database
+	if dataDir == "" {
+		db, _ = ethdb.NewMemDatabase()
+	} else {
+		var exists bool
+		// check if dir already exists
+		p := filepath.Join(dataDir, "evm")
+		if _, err := os.Stat(p); err == nil {
+			exists = true
+			fmt.Println("Datadir already exists")
 
-	db, _ := ethdb.NewMemDatabase()
-	statedb, _ := state.New(common.Hash{}, db)
-	sender := statedb.CreateAccount(common.HexToAddress(ctx.GlobalString(FromFlag.Name)))
+		}
+
+		fmt.Println("Loading database")
+		// load db
+		var err error
+		db, err = ethdb.NewLDBDatabase(p, 128, 64) // cache, handles
+		if err != nil {
+			panic(err)
+		}
+
+		// if state already exists, load latest specified or latest hash
+		if exists {
+			if rootFlag := ctx.GlobalString(RootFlag.Name); rootFlag != "" {
+				rootHash = common.HexToHash(rootFlag)
+			} else {
+				// load the latest block, grab hash
+				root, err := db.Get([]byte(LatestStateRootKey))
+				if err == nil {
+					rootHash = common.BytesToHash(root)
+				}
+
+			}
+		}
+	}
+
+	fmt.Printf("Loading root hash %X\n", rootHash)
+	statedb, _ := state.New(rootHash, db)
+
+	senderAddress := common.HexToAddress(ctx.GlobalString(FromFlag.Name))
+	receiverAddress := common.HexToAddress(ctx.GlobalString(ToFlag.Name))
+	gasBig := common.Big(ctx.GlobalString(GasFlag.Name))
+	gasPriceBig := common.Big(ctx.GlobalString(PriceFlag.Name))
+	valueBig := common.Big(ctx.GlobalString(ValueFlag.Name))
+	dataBytes := common.FromHex(ctx.GlobalString(InputFlag.Name))
+
+	var sender vm.Account
+	// if sender doesn't exist, create
+	if !statedb.HasAccount(senderAddress) {
+		sender = statedb.CreateAccount(senderAddress)
+	} else {
+		sender = statedb.GetAccount(senderAddress)
+	}
 
 	// make chain config with log and jit options
 	chainConfig := core.MakeChainConfig()
@@ -208,13 +279,6 @@ func run(ctx *cli.Context) error {
 	if err != nil {
 		panic(err)
 	}
-
-	senderAddress := common.HexToAddress(ctx.GlobalString(FromFlag.Name))
-	receiverAddress := common.HexToAddress(ctx.GlobalString(ToFlag.Name))
-	gasBig := common.Big(ctx.GlobalString(GasFlag.Name))
-	gasPriceBig := common.Big(ctx.GlobalString(PriceFlag.Name))
-	valueBig := common.Big(ctx.GlobalString(ValueFlag.Name))
-	dataBytes := common.FromHex(ctx.GlobalString(InputFlag.Name))
 
 	// make the message from the flags
 	msg := &message{
@@ -261,7 +325,13 @@ func run(ctx *cli.Context) error {
 			common.Big(ctx.GlobalString(ValueFlag.Name)),
 		)
 	} else {
-		receiver := statedb.CreateAccount(common.StringToAddress("receiver"))
+		var receiver vm.Account
+		// if receiver doesn't exist, create
+		if !statedb.HasAccount(receiverAddress) {
+			receiver = statedb.CreateAccount(receiverAddress)
+		} else {
+			receiver = statedb.GetAccount(receiverAddress)
+		}
 		receiver.SetCode(common.Hex2Bytes(ctx.GlobalString(CodeFlag.Name)))
 		ret, err = vmenv.Call(
 			sender,
@@ -273,6 +343,14 @@ func run(ctx *cli.Context) error {
 		)
 	}
 	vmdone := time.Since(tstart)
+
+	rootHash, err = statedb.Commit()
+	if err != nil {
+		panic(err)
+	}
+	if err := db.Put([]byte(LatestStateRootKey), rootHash.Bytes()); err != nil {
+		panic(err)
+	}
 
 	if ctx.GlobalBool(DumpFlag.Name) {
 		statedb.Commit()
