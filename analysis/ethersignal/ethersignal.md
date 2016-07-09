@@ -20,6 +20,9 @@ contract EtherSignal {
 }
 ```
 
+It is obviously a very simple contract, whose design goal is simply to burn some gas, log an event,
+and NEVER hold any ether. Let us step through the byte code to see how it works.
+
 After compiling with `solc --optimize --bin-runtime -o . ethersignal.sol` we get the following code:
 
 ```
@@ -143,7 +146,7 @@ If so, the caller has not correctly specified the function to call, and so the e
 9      JUMPI
 ```
 
-We see here that, if ISZERO returns a 0x01, we jump to 0x1d (29):
+We see here that, if ISZERO returns a 0x01, we jump to PC 0x1d (29):
 
 ```
 29     JUMPDEST
@@ -152,7 +155,7 @@ We see here that, if ISZERO returns a 0x01, we jump to 0x1d (29):
 34     JUMP
 ```
 
-Program count 29 is a valid jump destination, but we then jump to pc 2, which is an invalid jump destination, 
+PC 29 is a valid jump destination, but we then jump to PC 2, which is an invalid jump destination, 
 and causes execution to halt.
 
 We can confirm this behaviour with an execution:
@@ -294,8 +297,6 @@ STORAGE = 0
 OUT: 0x error: invalid jump destination (PUSH1) 2
 ```
 
-
-
 If the call-data size is not zero, we load the first four bytes and check if they match the correct function identifier 
 
 ```
@@ -314,7 +315,7 @@ If the call-data size is not zero, we load the first four bytes and check if the
 
 Here, we divide the 32-bytes of the call-data from position 0x0 by `2^224` to get the four-byte function identifier
 and compare it with the function identifier for the `setSignal` function, `7a6668bf`.
-We can confirm what the value should be in python:
+We can confirm what the function identifier should be in python:
 
 ```
 >>> import sha3
@@ -322,15 +323,16 @@ We can confirm what the value should be in python:
 '7a6668bf'
 ````
 
-If the function identifier matches, we jump to pc 0x23, otherwise we continue to pc 0x1d, 
+If the function identifier matches, we jump to PC 0x23 (35), otherwise we continue to PC 0x1d (29), 
 which we have already seen results in an invalid jump destination exception.
 
 So, if the call-data is empty, or if the first four bytes are not equal to the function identifier,
 the execution throws an exception and reverts all state. 
-We can similarly confirm this with an execution by passing any arbitrary call-data that does not begin with `7a6668bf`.
+We can similarly confirm this by passing any arbitrary call-data that does not begin with `7a6668bf`,
+eg. `$ evm --code $(cat EtherSignal.bin-runtime) --debug --input deadbeef`
 
 If the first four bytes of the call-data are `7a6668bf`, then the function is being correctly called
-and the `EQ` returns `0x01`, so we jump to pc 0x23 (35):
+and the `EQ` returns `0x01`, so we jump to PC 0x23 (35):
 
 ```
 35     JUMPDEST
@@ -373,8 +375,8 @@ Next up is the JUMPDEST which marks the top of the loop:
 
 The loop is expected to run 4096 (0x1000) times, so we push that to the stack,
 and duplicate the second item on the stack (the counter), so we can check if it is less than 0x1000.
-If not, the result of LT will be 0x0, so ISZERO will push 0x01, and we will jump to pc 0x46 (70), 
-thus exiting the loop. Otherwise, we add 0x01 to the counter on the stack and jump to pc 0x2e (46), 
+If not, the result of LT will be 0x0, so ISZERO will push 0x01, and we will jump to PC 0x46 (70), 
+thus exiting the loop. Otherwise, we add 0x01 to the counter on the stack and jump to PC 0x2e (46), 
 ie. back to the top of the loop.
 
 Note that every time through, when we are at the JUMPDEST at the top of the loop, 
@@ -391,13 +393,15 @@ STACK = 5
 ```
 
 where the top element is the counter (increments each pass through the loop), 
-and the next two elements are the two arguments passed in the call-data (`bool pro` and `bytes32 positionHash`, respectively)
+and the next two elements are the two arguments passed in the call-data (`bool pro` and `bytes32 positionHash`, respectively,
+here we are showing an example where the arguments were simply empty)
 
 The loop progresses in this way, doing nothing of interest but burning gas, until the counter value reaches 0x1000, 
-at which point we jump to pc 0x46 (70),
+at which point we jump to PC 0x46 (70),
 which is a valid jump destination, and continue by logging an event as follows:
 
 ```
+70     JUMPDEST
 71     PUSH1  => 60
 73     DUP3
 74     DUP2
@@ -423,18 +427,18 @@ Now we push 20-bytes of `0xff` and the caller address, and perform boolean AND,
 ensuring the resulting item on the stack has at most 20 non-zero bytes - 
 though the result of CALLER should always be 20-bytes anyways, so not sure this is necessary.
 We now store the resulting address at position 0x80 in memory.
-A few more stack operations get everything prepared for the log operation. 
-For instance, right before the LOG the stack looks something like:
+A few more stack operations get everything prepared for the LOG2.
+For instance, right before the LOG2 the stack looks something like:
 
 ```
 0000: 0000000000000000000000000000000000000000000000000000000000000060 - position in memory
 0001: 0000000000000000000000000000000000000000000000000000000000000040 - size in memory
 0002: dfe72b85658ece2ea9a0485273e99806605f396deff71c0650ea0e4bb691ca8b - topic 1 (hard coded by solidity)
 0003: 0000000000000000000000000000000000000000000000000000000000000000 - topic 2 (`bytes32 positionHash` argument)
-0004: 0000000000000000000000000000000000000000000000000000000000001000
-0005: 0000000000000000000000000000000000000000000000000000000000000000
-0006: 0000000000000000000000000000000000000000000000000000000000000000
-0007: 000000000000000000000000000000000000000000000000000000000000003f
+0004: 0000000000000000000000000000000000000000000000000000000000001000 - counter variable from the loop
+0005: 0000000000000000000000000000000000000000000000000000000000000000 - call data (`bool pro`)
+0006: 0000000000000000000000000000000000000000000000000000000000000000 - call data (`bytes32 positionHash`)
+0007: 000000000000000000000000000000000000000000000000000000000000003f 
 0008: 000000000000000000000000000000000000000000000000000000007a6668bf
 ```
 Here we are using `LOG2`, which takes a starting location and size for the byte-array to log from memory, 
@@ -469,16 +473,16 @@ Next up, we send any balance the contract has to the caller with a CALL:
 ```
 
 This is mostly just a mess of stack manipulation to arrange the arguments for the call.
-The stack just before the call looks something like:
+Here is what the stack looks like just before the call, with elements annotated:
 
 ```
-0000: 0000000000000000000000000000000000000000000000000000000000000000
-0001: 000000000000000000000000000000000000000000000000000073656e646572
-0002: 0000000000000000000000000000000000000000000000000000000000000000
-0003: 0000000000000000000000000000000000000000000000000000000000000060
-0004: 0000000000000000000000000000000000000000000000000000000000000000
-0005: 0000000000000000000000000000000000000000000000000000000000000060
-0006: 0000000000000000000000000000000000000000000000000000000000000000
+0000: 0000000000000000000000000000000000000000000000000000000000000000 - gas
+0001: 000000000000000000000000000000000000000000000000000073656e646572 - address
+0002: 0000000000000000000000000000000000000000000000000000000000000000 - value
+0003: 0000000000000000000000000000000000000000000000000000000000000060 - inputOffset
+0004: 0000000000000000000000000000000000000000000000000000000000000000 - inputSize
+0005: 0000000000000000000000000000000000000000000000000000000000000060 - returnOffset
+0006: 0000000000000000000000000000000000000000000000000000000000000000 - returnSize
 0007: 0000000000000000000000000000000000000000000000000000000000000060
 0008: 0000000000000000000000000000000000000000000000000000000000000000
 0009: 0000000000000000000000000000000000000000000000000000000000000000
@@ -495,11 +499,33 @@ gas, address, value, inputOffset, inputSize, returnOffset, returnSize;
 where offset and size parameters refer to the memory array.
 In this case, we pay 0x0 gas to send to the caller (address 000000000000000000000000000073656e646572) 0x0 wei.
 The input is copied from position 0x60, length 0x0, and the return value is stored at position 0x60, length 0x0.
-In essence, this is a dummy call.
+In essence, this is a dummy call, since it provides no gas and no data.
+Note that in the solidity contract, the `send` function was used, 
+which is exactly a high-level alias for this kind of dummy call:
 
-If the call succeeds, it pushes 0x01 to the stack and writes the return to memory.
+```
+msg.sender.send(this.balance)
+```
+
+The intention is to send any balance the contract may have received back to the sender.
+We have zero desire for any code to execute, so we provide zero gas.
+The default gas of the CALL opcode will be deducted, and that is all that must be paid to 
+perform the necessary value transfer.
+
+If the CALL succeeds, it pushes 0x01 to the stack and writes the return to memory.
 Otherwise, it pushes 0x0 to the stack.
-Successful completion of a call would give us a stack like:
+
+Note that, if the caller is actually a contract, then the CALL will attempt to execute the code of that contract,
+but since it is provided no gas, it will throw an OutOfGas exception, causing the CALL to fail, and return 0x0 to the stack.
+This would leave our contract with whatever balance it was sent, so we check the value pushed to the stack and throw
+an exception if it is zero. This is why the `send` function is wrapped in:
+
+```
+if(!msg.sender.send(this.balance)){ throw; }
+```
+
+To see this in byte code, we have to wade through some more stack manipulation.
+First, not that a successful completion of a call would give us a stack like:
 
 ```
 0000: 0000000000000000000000000000000000000000000000000000000000000001
@@ -514,10 +540,10 @@ Successful completion of a call would give us a stack like:
 0009: 000000000000000000000000000000000000000000000000000000007a6668bf
 ```
 
+(An unsuccessful call would have a 0x0 at the top instead of the 0x1).
+
 Before checking the return value, we remove three unneeded elements from the stack
-by swaping out the return value below them and popping them.
-Then we run ISZERO twice, which returns a 0x01 if the call returned a 0x1, and a 0x0 otherwise
-- hence it is effectively redundant.
+by swaping out the return value below them and popping them off:
 
 ```
 183    SWAP4
@@ -525,6 +551,12 @@ Then we run ISZERO twice, which returns a 0x01 if the call returned a 0x1, and a
 185    POP
 186    POP
 187    POP
+```
+
+Note that `SWAPN` followed by `POP` N times leaves whatever what was on top of the stack before the `SWAPN`
+still at the top (in this case, the return value of the call). Now we can check if it is zero:
+
+```
 188    ISZERO
 189    ISZERO
 190    PUSH1  => 41
@@ -533,9 +565,12 @@ Then we run ISZERO twice, which returns a 0x01 if the call returned a 0x1, and a
 195    JUMP
 ```
 
-If the call returned a 0x1, we jump to 0x41 (65). Otherwise, we throw an exception by jumping to the invalid destination at pc 0x2.
+For some reason, the ISZERO is run twice, which leaves the value unchanged (assuming it was a 0x0 or 0x1 to begin with).
+Ie. (ISZERO (ISZERO 0x0)) = 0x0 and (ISZERO (ISZERO 0x1)) = 0x1.
+In any case, if the call returned a 0x1, we jump to PC 0x41 (65). 
+Otherwise, we throw an exception by jumping to the invalid destination at PC 0x2 (2).
 
-At pc 65, a valid jump destination, we pop a few more un-needed items from the stack:
+At PC 65, a valid jump destination, we pop a few more un-needed items from the stack:
 
 ```
 65     JUMPDEST
@@ -551,14 +586,14 @@ leaving us with:
 0002: 000000000000000000000000000000000000000000000000000000007a6668bf
 ```
 
-This 0x3f (63) was pushed long ago, on pc 36, when we mentioned it would be used by a jump.
+This 0x3f (63) was pushed long ago, at PC 36, when we mentioned it would be used by a jump.
 Here is that jump:
 
 ```
 69     JUMP
 ```
 
-It takes us to pc 63:
+It takes us to PC 63:
 
 ```
 63     JUMPDEST
@@ -566,3 +601,27 @@ It takes us to pc 63:
 ```
 
 And that is that! Contract execution has completed successfully.
+
+# Remarks
+
+EtherSignal is a simple contract intended to allow users to signal whether they are for or against some proposal,
+and to provide a hash of their position statement. The contract wastes some amount of gas in a useless for-loop,
+before logging an event containing the caller's address, vote, and position statement hash.
+In order to avoid ever holding any ether, the contract always either throws an exception (via an invalid JUMPDEST),
+or sends its balance back to the caller. If the send fails, it will also throw an exception. 
+Since throwing an exception or running out of gas reverts all state associated with the transaction (except the payment of gas),
+this contract is guaranteed to never hold a balance at the end of an execution.
+
+Of course, it goes without saying that the contract will hold a balance if some value is sent in the transaction which creates it,
+but this is entirely in the control of the user deploying the contract to begin with. Worst case, this balance will be sent to the first successful user of the contract.
+
+Note that the use of a dumb for-loop to burn gas may have unintended consequences. 
+In particular, since it is guaranteed to use a fixed amount of gas and make no change to the state,
+clever miners can attempt to DoS other nodes by calling the contract many times in blocks they mine 
+(hence paying gas to themselves) and simply not running the loop, 
+since they know it has no effect. 
+Other, less clever users and miners will be forced to run the loop, thus providing a potentially strong advantage to the clever miner.
+Fortunately, this loop is easily identifiable, and the Nash equilibrium is such that all users will eventually just not run it - though we await the deployment of tools that would permit such intelligent behaviour.
+
+
+
