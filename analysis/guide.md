@@ -87,7 +87,6 @@ opcodes = {
     0xa2: ['LOG2', 4, 0, 1125],
     0xa3: ['LOG3', 5, 0, 1500],
     0xa4: ['LOG4', 6, 0, 1875],
-
 	
     # arbitrary length storage (proposal for metropolis hardfork)
     0xe1: ['SLOADBYTES', 3, 0, 50],
@@ -134,7 +133,7 @@ The LOG opcodes enable event logging which is recorded in blocks and can be veri
 Finally, CALL and CREATE allow contracts to call and create other contracts, respectively, while RETURN returns a chunk of memory from a call,
 and SUICIDE causes the contract to be destroyed and return all funds to a specified address.
 
-The specification for each opcode can be found in the [yellow paper](http://gavwood.com/paper.pdf), 
+The specification for each opcode can be found in the [yellow paper](http://gavwood.com/paper.pdf)([source on github](https://github.com/ethereum/yellowpaper)), 
 or in the implementation of the EVM in your favorite language.
 
 Note the EVM is redundantly Turing complete - 
@@ -145,7 +144,8 @@ To force all executions to terminate, each operation is tagged with an explicit 
 Executions must specify a maximum amount of gas, such that using more than that amount throws an OutOfGas exception.
 
 Other exceptions include invalid op codes, stack underflow, and out-of-bounds memory access.
-There is also a call-depth limit, such that chains of calls from contracts to other contracts can only be so long,
+There is also a stack size limit, such that the stack can only be so big, 
+and a call-depth limit, such that chains of calls from contracts to other contracts can only be so long,
 for instance causing recursive invocations of a contract to eventually halt, despite the amount of gas provided.
 Ethereum transactions are atomic - if an exception is thrown, all state transitions are reverted.
 The only exception to this rule (no pun intended) is gas payment - any gas used up until the OutOfGas exception is deducted and sent to the miners.
@@ -156,7 +156,7 @@ a significant DoS attack vector against miners.
 
 Let us look at some simple executions. To do so, I have collected some useful tools in a single repo, 
 including forks of some nice nice tools provided by go-ethereum. 
-Make sure you have go installed, set your `GOPATH` environment variable to whatever you want, 
+Make sure you have Go installed, set your `GOPATH` environment variable to whatever you want, 
 and add `$GOPATH/bin` to your `PATH`. Then run:
 
 ```
@@ -214,7 +214,7 @@ The `--debug` flag prints the current state of the stack, memory, and storage fo
 and shows us each opcode and the gas cost. Note how the 0x04 and 0x05 are pushed to the stack (padded to 32-bytes)
 and consumed by ADD, which leaves the result, 0x09, on the stack.
 To have the value returned, instead of simply left on the stack,
-we need to modify the bytecode: the value should be copied into memory so it can be returned:
+we need to modify the bytecode so the value is copied into memory and then returned:
 
 ```
 $ echo 60056004016000526001601ff3  | disasm
@@ -403,8 +403,9 @@ STORAGE = 0
 
 What if you want your program to have multiple possible functions?
 The combination of these problems, of formatting call-data and calling
-one of many functions, gave rise to an Application Binary Interface (ABI)
-standard, respected by the high-level programming languages (solidity, serpent, etc.).
+one of many functions, gave rise to an [Application Binary Interface (ABI)
+standard](https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI), 
+respected by the high-level programming languages (solidity, serpent, etc.).
 We will discuss this later.
 
 First, how can we do control flow? Using boolean expressions and jumps, of course!
@@ -430,8 +431,8 @@ $ echo  6000356000525b600160005103600052600051600657 | disasm
 21     JUMPI
 ```
 
-Here, we load some value (the counter) from the call-data and loop that many times by storing the counter in memory and
-decrementing on each pass through the loop.
+Here, we load some value (the counter) from the call-data and loop that many times 
+by storing the counter in memory (at position 0x0) and decrementing on each pass through the loop.
 The loop essentially starts at the `JUMPDEST`. The final opcode, `JUMPI`, takes a value and a location, 
 and if the value is non-zero, jumps to the location in the program. If the location is not a `JUMPDEST`, 
 the execution throws an exception. In this case, the `JUMPDEST` is at position `0x06`,
@@ -477,9 +478,9 @@ and watch the counter persist and decrement on the stack, instead of in memory.
 One more improvement before moving on. Passing a 32-byte padded input string is awful;
 the call-data should be only as big as it needs to be. In this case, we would like a loop of 5 times to be called with
 `--input 05` and one that run 257 times with `--input 0101`. 
-Problem is, CALLDATALOAD loads 32 big-endian bytes, so `--input 05` 
+Problem is, CALLDATALOAD loads 32-byte big-endian numbers, so `--input 05` 
 becomes the massive `0500000000000000000000000000000000000000000000000000000000000000` on the stack.
-Since there is no byte shifting operator in ethereum, we have to use division.
+Since there is no byte shifting operator in the EVM, we have to use division.
 In this case, we want to divide by `256^(32-L)`, where `L` is the length of the call-data.
 This has the effect of byte-shifting to the right by `(32-L)` bytes. 
 The updated byte-code looks like:
@@ -504,6 +505,8 @@ $ echo  366020036101000a600035045b6001900380600c57 | disasm
 
 and we can run the loop five times with `evm --debug --code 366020036101000a600035045b6001900380600c57 --input 05`
 or 257 times with `evm --debug --code 366020036101000a600035045b6001900380600c57 --input 0101`.
+Make sure you understand how the EXP and DIV are being used to achieve byte shifting - this is a very common paradigm
+used extensively by the higher level languages.
 
 # Contracts
 
