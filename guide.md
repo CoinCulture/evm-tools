@@ -430,7 +430,7 @@ $ echo  6000356000525b600160005103600052600051600657 | disasm
 21     JUMPI
 ```
 
-Here, we load some value (call it N) from the call-data and loop that many times by storing the counter in memory and
+Here, we load some value (the counter) from the call-data and loop that many times by storing the counter in memory and
 decrementing on each pass through the loop.
 The loop essentially starts at the `JUMPDEST`. The final opcode, `JUMPI`, takes a value and a location, 
 and if the value is non-zero, jumps to the location in the program. If the location is not a `JUMPDEST`, 
