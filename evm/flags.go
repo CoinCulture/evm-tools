@@ -24,7 +24,6 @@ var appFlags = []cli.Flag{
 
 	DataDirFlag,
 	RootFlag,
-	CreateFlag,
 
 	DifficultyFlag,
 	NumberFlag,
@@ -74,7 +73,7 @@ var (
 	PriceFlag = cli.StringFlag{
 		Name:  "price",
 		Usage: "price set for the evm",
-		Value: "0",
+		Value: "1",
 	}
 	ValueFlag = cli.StringFlag{
 		Name:  "value",
@@ -93,7 +92,7 @@ var (
 	ToFlag = cli.StringFlag{
 		Name:  "to",
 		Usage: "destination address receiving the call",
-		Value: common.StringToAddress("evmuser").Hex(),
+		Value: "",
 	}
 
 	// state options
@@ -104,10 +103,6 @@ var (
 	RootFlag = cli.StringFlag{
 		Name:  "root",
 		Usage: "state root to load",
-	}
-	CreateFlag = cli.BoolFlag{
-		Name:  "create",
-		Usage: "set to create contract",
 	}
 
 	// block arguments

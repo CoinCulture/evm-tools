@@ -21,13 +21,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -49,7 +49,12 @@ var (
 
 func init() {
 
-	app = utils.NewApp("0.2", "the evm command line interface")
+	app = cli.NewApp()
+	app.Name = filepath.Base(os.Args[0])
+	app.Author = ""
+	app.Email = ""
+	app.Version = "0.3" // persistence
+	app.Usage = "evm command line tool"
 	app.Flags = appFlags
 	app.Action = run
 }
@@ -114,6 +119,12 @@ func run(ctx *cli.Context) error {
 		sender = statedb.GetAccount(senderAddress)
 	}
 
+	// TODO: something smarter
+	// make sure sender has enough funds
+	fundsBig := gasBig.Mul(gasBig, gasPriceBig)
+	fundsBig = fundsBig.Add(fundsBig, valueBig)
+	sender.AddBalance(fundsBig)
+
 	// make chain config with log and jit options
 	chainConfig := core.MakeChainConfig()
 	chainConfig.VmConfig = vm.Config{
@@ -163,27 +174,36 @@ func run(ctx *cli.Context) error {
 	tstart := time.Now()
 
 	var (
-		ret []byte
+		ret          []byte
+		contractAddr common.Address
 	)
 
-	if ctx.GlobalBool(CreateFlag.Name) {
+	toBytes := receiverAddress.Bytes()
+	if bytes.Count(toBytes, []byte{0}) == len(toBytes) {
 		input := append(common.Hex2Bytes(ctx.GlobalString(CodeFlag.Name)), common.Hex2Bytes(ctx.GlobalString(InputFlag.Name))...)
-		ret, _, err = vmenv.Create(
+		ret, contractAddr, err = vmenv.Create(
 			sender,
 			input,
 			common.Big(ctx.GlobalString(GasFlag.Name)),
 			common.Big(ctx.GlobalString(PriceFlag.Name)),
 			common.Big(ctx.GlobalString(ValueFlag.Name)),
 		)
+		fmt.Printf("Contract Address: %X\n", contractAddr)
 	} else {
 		var receiver vm.Account
 		// if receiver doesn't exist, create
 		if !statedb.HasAccount(receiverAddress) {
+			fmt.Printf("Created account for receiver %X\n", receiverAddress)
 			receiver = statedb.CreateAccount(receiverAddress)
 		} else {
 			receiver = statedb.GetAccount(receiverAddress)
+			fmt.Printf("Loaded account for receiver %X\n", receiverAddress)
 		}
-		receiver.SetCode(common.Hex2Bytes(ctx.GlobalString(CodeFlag.Name)))
+		if dataDir == "" {
+			// only set the code if non-stateful execution
+			receiver.SetCode(common.Hex2Bytes(ctx.GlobalString(CodeFlag.Name)))
+		}
+		fmt.Printf("CODE: %X\n", vmenv.Db().GetCode(receiver.Address()))
 		ret, err = vmenv.Call(
 			sender,
 			receiver.Address(),
