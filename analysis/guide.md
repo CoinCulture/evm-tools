@@ -112,11 +112,14 @@ for i in range(1, 17):
     opcodes[0x8f + i] = ['SWAP' + str(i), i + 1, i + 1, 3]
 ```
 
+The table tells us how many arguments each opcode pops off the stack and pushes back onto the stack,
+as well as how much gas is consumed. In addition
 Most opcodes take some number of arguments off the stack, and push one or no results back onto the stack.
 Some, like GAS and PC, take no arguments off the stack, and push the remaining gas and program counter,
 respectively, onto the stack. 
 A number of opcodes, like SHA3, CREATE, and RETURN, take arguments off the stack that refer to 
 positions and sizes in memory, allowing them to operate on a contiguous array of memory.
+Each
 
 All arithmetic happens on big integers using elements on the stack (ie. 32-byte Big Endian integers).
 Currently, the only crypto operation is the SHA3 hash function, 
@@ -125,7 +128,7 @@ Contract and blockchain level contexts give access to various useful environment
 for instance CALLDATACOPY will copy the input data sent to the contract (known as call-data) into memory, and NUMBER can be used
 to time-lock behaviour by block number.
 The EVM operates on its ephemeral memory via MLOAD and MSTORE, and on its persistent storage via SLOAD and SSTORE.
-JUMP can be used to jump to arbitrary points in the program. 
+JUMP can be used to jump to arbitrary points in the program, and those points must be a JUMPDEST.
 The PUSH1-PUSH32 opcodes push anywhere from 1 to 32 bytes to the stack.
 The DUP1-DUP16 opcodes push a duplicate of one of the top 16 elements of the stack to the top of the stack.
 The SWAP1-SWAP16 opcodes swap the top element of the stack with any of the preceeding 16.
@@ -142,8 +145,43 @@ and those of an agent-based message passing system,
 where agents may have arbitrary code (ops for calling and creating other contracts, returning values).
 To force all executions to terminate, each operation is tagged with an explicit cost, denominated in *gas*. 
 Executions must specify a maximum amount of gas, such that using more than that amount throws an OutOfGas exception.
+The list of opcodes specifies how much gas each opcode consumes. In addition, certain operations consume amounts of gas
+that are parameterized by the following (see the yellow paper for more details):
 
-Other exceptions include invalid op codes, stack underflow, and out-of-bounds memory access.
+```
+# Non-opcode gas prices
+GDEFAULT = 1
+GMEMORY = 3
+GQUADRATICMEMDENOM = 512  # 1 gas per 512 quadwords
+GSTORAGEREFUND = 15000
+GSTORAGEKILL = 5000
+GSTORAGEMOD = 5000
+GSTORAGEADD = 20000
+GEXPONENTBYTE = 10    # cost of EXP exponent per byte
+GCOPY = 3             # cost to copy one 32 byte word
+GCONTRACTBYTE = 200   # one byte of code in contract creation
+GCALLVALUETRANSFER = 9000   # non-zero-valued call
+GLOGBYTE = 8          # cost of a byte of logdata
+
+GTXCOST = 21000       # TX BASE GAS COST
+GTXDATAZERO = 4       # TX DATA ZERO BYTE GAS COST
+GTXDATANONZERO = 68   # TX DATA NON ZERO BYTE GAS COST
+GSHA3WORD = 6         # Cost of SHA3 per word
+GSHA256BASE = 60      # Base c of SHA256
+GSHA256WORD = 12      # Cost of SHA256 per word
+GRIPEMD160BASE = 600  # Base cost of RIPEMD160
+GRIPEMD160WORD = 120  # Cost of RIPEMD160 per word
+GIDENTITYBASE = 15    # Base cost of indentity
+GIDENTITYWORD = 3     # Cost of identity per word
+GECRECOVER = 3000     # Cost of ecrecover op
+
+GSTIPEND = 2300
+
+GCALLNEWACCOUNT = 25000
+GSUICIDEREFUND = 24000
+```
+
+Other exceptions, besides out-of-gas, include invalid op codes, stack underflow, and invalid jump destinations.
 There is also a stack size limit, such that the stack can only be so big, 
 and a call-depth limit, such that chains of calls from contracts to other contracts can only be so long,
 for instance causing recursive invocations of a contract to eventually halt, despite the amount of gas provided.
@@ -164,6 +202,8 @@ go get github.com/ebuchman/evm-tools/...
 ```
 
 This will install the following tools, now accessible from $GOPATH/bin: `evm`, `disasm`, `evm-deploy`.
+
+TODO: We also use some python ...
 
 Now, here is some very simple bytecode I wrote:
 
@@ -613,13 +653,123 @@ STORAGE = 0
 OUT: 0x6005600401
 ```
 
-Tada!
+Tada! 
 
 
+# Stateful EVM
 
+I made some modifications to the `evm` tool so it can persist state between invocations. 
+Just use the `--datadir` flag.
+For instance, let us use the contract that returns the sum of 0x5 and 0x4.
+We can run the deploy code, so the contract is actually deployed 
+(an account created with the correct code) and then we can interact with it:
 
+```
+$ evm --code $(echo "60056004016000526001601ff3" | evm-deploy)  --datadir evm-data
+Loading database
+Loading root hash 0000000000000000000000000000000000000000000000000000000000000000
+Contract Address: 1F2A98889594024BFFDA3311CBE69728D392C06D
+VM STAT 0 OPs
+OUT: 0x60056004016000526001601ff3
+```
 
+Note it gave us the new contract address. Where did this address come from?
+It is the sha3 hash of the [RLP](https://github.com/ethereum/wiki/wiki/RLP) encoding of the list `[address of sender, sequence number of sender]`.
+The default sender is `0x000000000000000000000000000073656e646572` (that is hex for `sender`),
+and the sequence number starts at `0x0`. In python:
 
+```
+>>> import rlp, sha3
+>>> sha3.sha3_256(rlp.encode(["000000000000000000000000000073656e646572".decode('hex'), 0])).hexdigest()[24:]
+'1f2a98889594024bffda3311cbe69728d392c06d'
+```
+
+Note this means the address is strictly deterministic starting from the same state. 
+If we deploy the contract, again, the sequence number of the sender will be 0x1:
+
+```
+$ evm --code $(echo "60056004016000526001601ff3" | evm-deploy)  --datadir evm-data
+Datadir already exists
+Loading database
+Loading root hash BFDDB19821CE2BFAB71C4BA9E8ADC6CF083DAE0EF9206AA506BC88B0F9064182
+Contract Address: 14F6D12ECEBB7606C528880AD8B97C25AB7D4AD9
+VM STAT 0 OPs
+OUT: 0x60056004016000526001601ff3
+```
+
+Same output, new contract address:
+
+```
+>>> import rlp, sha3
+>>> sha3.sha3_256(rlp.encode(["000000000000000000000000000073656e646572".decode('hex'), 1])).hexdigest()[24:]
+'14f6d12ecebb7606c528880ad8b97c25ab7d4ad9'
+```
+
+Now we can send a transaction to the contract:
+
+```
+$ evm --to 14F6D12ECEBB7606C528880AD8B97C25AB7D4AD9 --datadir evm-data
+Datadir already exists
+Loading database
+Loading root hash 60209E93FEFD3DD5CF1D6B3FBDC33DA1B020C5B880A51E8306A3F5FDF269122A
+Loaded account for receiver 14F6D12ECEBB7606C528880AD8B97C25AB7D4AD9
+CODE: 60056004016000526001601FF3
+VM STAT 0 OPs
+OUT: 0x09
+```
+
+Woopie!
+
+# Exceptions
+
+Here are some examples of exceptions.
+
+Invalid opcode (`5f` is not a known opcode):
+
+```
+evm --debug --code 5f
+```
+
+Stack underflow (`JUMP` (0x56) expects at least one argument on the stack):
+
+```
+evm --debug --code 56
+```
+
+Invalid jump destination (the destination 0x0 is not a `JUMPDEST`, in this case its a `PUSH`):
+
+```
+evm --debug --code 600056
+```
+
+Here's an out-of-gas exception (`PUSH` requires 3 gas):
+
+```
+evm --debug --gas 1 --code 6000
+```
+
+See `evm --help` for options and defaults.
+
+# Memory and Storage
+
+In addition to the stack, the EVM comes with an emphemeral memory byte-array and persistent storage tree.
+Access to the memory byte-array is relatively cheap, and out-of-bounds memory access is not an exception; 
+memory grows as necessary when you access it, you simply pay the gas for the change in size. 
+
+For instance, accessing memory location 0x1000 costs us quite a lot the first time, 
+since the memory grows from size 0 to size 4096, and very little the second time, since
+the size of the memory doesn't change:
+
+```
+evm --debug --code 611000805151
+```
+
+The storage size is practically infinite, or `2^256`, but is relatively expensive, at `20000` gas when writing a non-zero where there was previously a zero,
+and `5000` otherwise. For instance, we store a 0x2 at position 0x0, then overwrite it with a 0x1:
+
+```
+evm --debug --code 60026000556001600055
+```
 
 # Solidity
 
@@ -662,9 +812,9 @@ contract Addition{
 ```
 
 This contract allows users to call the `add` function, passing two arguments `a` and `b` whose sum is stored in the variable `x`.
-Note that variables defined at the top of a contract are persisted in the contract storage tree.
+Note that variables defined at the top of a contract are persisted in the contract storage tree (using `SSTORE`).
 
-Back in the container session, `cd /home/eris/.eris` and `ls`, you should see some folders and your solidity contract.
+Back in the container terminal session, `cd /home/eris/.eris` and `ls`, you should see some folders and your solidity contract.
 
 Compile the contract:
 
@@ -672,11 +822,12 @@ Compile the contract:
 solc --bin-runtime --optimize -o . add.sol
 ```
 
-In the host session, you should see the contract under `$SOLC_WORKSPACE/Addition.bin-runtime`.
+In the host terminal session, you should see the contract under `$SOLC_WORKSPACE/Addition.bin-runtime`.
 
 By using `--bin-runtime`, we get the code as it would be in the contract after having been deployed - 
 we can test that with the `evm` tool. If we use `--bin` instead of `--bin-runtime`, and run that
-through the `evm`, the output from the evm should be the same as the output from the compiler when using `--bin-runtime`.
+through the `evm`, the output from the evm should be the same as the output from the compiler when using `--bin-runtime`,
+ie. the return value of a contract compiled with `--bin` is the contract compiled with `--bin-runtime`.
 
 Let's disassemble the solidity contract:
 
@@ -711,11 +862,11 @@ $ echo $(cat MyContract.bin-runtime)  | disasm
 39     JUMP
 ```
 
-The addition itself happens towards the bottom. Note that with the CALLDATALOADs we are loading 32-byte arguments 
-from positions 0x04 and 0x24, rather than 0x00 and 0x20, to make room in the first four bytes for the function identifier.
-In this case, as you might guess, the function identifier for our sole function is `a5f3c23b1`.
-Most of the opcodes deal with checking whether or not the first four bytes of the call-data equal `a5f3c23b` -
-again, since CALLDATALOAD grabs a 32-byte word, and we only want four bytes, we have to byte shift by dividing by a large integer,
+The addition itself happens towards the bottom. Note that just before the ADD, with the CALLDATALOADs, we are loading 32-byte arguments 
+from positions 0x04 and 0x24 of the call-data, rather than 0x00 and 0x20, to make room in the first four bytes for the function identifier.
+In this case, as you might guess, the function identifier for our sole function is `a5f3c23b`.
+Everything before line 26 in the code is dealing with checking whether or not the first four bytes of the call-data equal `a5f3c23b` -
+since CALLDATALOAD grabs a 32-byte word, and we only want four bytes, we have to byte shift by dividing by a large integer,
 hence the `EXP` and `DIV`.
 If the first four bytes of the call-data match `a5f3c23b`, we load the arguments, add them, and store at position 0x00.
 Otherwise, we halt.
@@ -733,5 +884,4 @@ To call the function correctly, we can do `evm --debug --code $(cat Addition.bin
 A more interesting version of the function would have a `get` function, so we can find out the last value stored:
 
 ```
-
 ```
