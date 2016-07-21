@@ -781,25 +781,31 @@ corresponding to the first four bytes of the sha3 hash of the canonical version 
 The rest of the arguments are passed in padded to 32-bytes.
 
 First, we need the solidity compiler, `solc`. Since it is written in C++, it is a pain to install.
-Fortunately, you can use docker and the very nice image provided by Eris Industries:
+Fortunately, you can use docker and the very nice image provided by Eris Industries.
+
+First, let's create a working directory:
 
 ```
 export SOLC_WORKSPACE=$HOME/solidity_workspace
 mkdir $SOLC_WORKSPACE
+```
+
+Now we run the docker container (if you don't already have the eris/compilers image, this will download it):
+
+```
 docker run --name solc -v $SOLC_WORKSPACE:/home/eris/.eris -it quay.io/eris/compilers /bin/bash
 ```
 
-After pulling the image from quay.io (assuming you do not already have it),
-this will run a new container with the solidity compiler installed, 
-and will mount the directory `$SOLC_WORKSPACE` into the container
-so that any new files or edits made in that directory will be reflected immediately in the container.
-Your terminal session is now an interactive bash shell within the docker container. Run `solc --help` to ensure it is installed.
+The result of this command is to drop you in a container with the solidity compiler installed, 
+where the directory `$SOLC_WORKSPACE` is mounted into the container at /home/eris/.eris
+so that any new files or edits made in `$SOLC_WORKSPACE` will be reflected immediately in the container.
+Run `solc --help` to ensure the compiler is properly installed.
 
 Working with docker typically involves two terminal sessions, one in the container and one on your host.
 The container session allows interactive access to whatever binaries you needed (in this case, `solc`),
 while the host session allows files and changes to be made normally from the host, and immediately reflected in the container.
 
-Open another window to be the host session, set the SOLC_WORKSPACE with `export SOLC_WORKSPACE=$HOME/solidity_workspace`,
+Open another window to be the host session, set the `SOLC_WORKSPACE` with `export SOLC_WORKSPACE=$HOME/solidity_workspace`,
 and save the following simple solidity contract as `$SOLC_WORKSPACE/add.sol`:
 
 ```
@@ -881,7 +887,79 @@ Note we can verify function identifiers by running `solc --hashes add.sol`, or i
 
 To call the function correctly, we can do `evm --debug --code $(cat Addition.bin-runtime) --input a5f3c23b00000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000004`
 
-A more interesting version of the function would have a `get` function, so we can find out the last value stored:
+A more interesting version of the contract would have a `get` function, so we can find out the last value stored:
 
 ```
+contract Addition{
+	int x;
+	function add(int a, int b){
+		x = a + b;
+	}
+
+	function get() returns (int){
+		return x;
+	}
+
+}
 ```
+
+Using our persistent evm tool, lets deploy this contract, add two values, and then retrieve the stored value.
+Save the contract as `add.sol`. Now, from within the container, compile the contract:
+
+```
+solc --bin --optimize -o . add.sol
+```
+
+This should create `Addition.bin`, which should be available outside the container in `$SOLC_WORKSPACE`.
+From the `$SOLC_WORKSPACE` on the host, lets deploy the contract:
+
+```
+$ evm --code $(cat Addition.bin) --datadir evm-data
+Loading database
+Loading root hash 0000000000000000000000000000000000000000000000000000000000000000
+Contract Address: 1F2A98889594024BFFDA3311CBE69728D392C06D
+VM STAT 0 OPs
+OUT: 0x606060405260e060020a60003504636d4ce63c81146024578063a5f3c23b146031575b005b6000546060908152602090f35b60243560043501600055602256
+```
+
+Now let's call the `add` function, and get it to store the result of `5+4`:
+
+```
+evm --datadir evm-data --to 0x1F2A98889594024BFFDA3311CBE69728D392C06D --input a5f3c23b00000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000004
+```
+
+Finally, let's call the `get` function. First, we get the functionid from solc:
+
+```
+$ solc --hashes add.sol
+======= Addition =======
+Function signatures: 
+6d4ce63c: get()
+a5f3c23b: add(int256,int256)
+```
+
+Now we can call the contract:
+
+```
+$ evm --datadir evm-data --to 0x1F2A98889594024BFFDA3311CBE69728D392C06D --input 6d4ce63c
+Datadir already exists
+Loading database
+Loading root hash F3C30A7CD9769C45590C236816F2714E96198DBD7FEC33AE892E861816F548B2
+Loaded account for receiver 1F2A98889594024BFFDA3311CBE69728D392C06D
+CODE: 606060405260E060020A60003504636D4CE63C81146024578063A5F3C23B146031575B005B6000546060908152602090F35B60243560043501600055602256
+VM STAT 0 OPs
+OUT: 0x0000000000000000000000000000000000000000000000000000000000000009
+```
+
+Tada! Try running the code with `--debug` and make sure you can understand everything that is happening.
+
+
+# Conclusion
+
+That concludes this introducty guide to the Ethereum Virtual Machine.
+Hopefully, you now have a much deeper understanding of how it works,
+and will pass on this knowledge to others, both human and machine,
+to increase the number of people who understand how Ethereum works at a low level
+and to increase the number of tools for working with and analyzing Ethereum contracts.
+
+Toodles!
