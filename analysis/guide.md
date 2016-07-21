@@ -203,7 +203,28 @@ go get github.com/ebuchman/evm-tools/...
 
 This will install the following tools, now accessible from $GOPATH/bin: `evm`, `disasm`, `evm-deploy`.
 
-TODO: We also use some python ...
+If you already have the tools installed, but something doesn't work, update to the latest with 
+
+```
+cd $GOPATH/src/github.com/ebuchman/evm-tools
+git pull origin master
+go install disasm evm evm-deploy
+```
+
+We also use some python, and in particular the `sha3` and `rlp` packages:
+
+```
+pip install pysha3 rlp
+```
+
+Note there are two incompatible versions of `sha3`, 
+and Ethereum uses the `Keccak` version, so make sure you have the right one. 
+You can verify with:
+
+```
+$ python -c "import sha3; print sha3.sha3_256('').hexdigest()"
+c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
+```
 
 Now, here is some very simple bytecode I wrote:
 
