@@ -525,6 +525,7 @@ In this case, we want to divide by `256^(32-L)`, where `L` is the length of the 
 This has the effect of byte-shifting to the right by `(32-L)` bytes. 
 The updated byte-code looks like:
 
+```
 $ echo  366020036101000a600035045b6001900380600c57 | disasm
 366020036101000a600035045b6001900380600c57
 0      CALLDATASIZE
@@ -542,6 +543,7 @@ $ echo  366020036101000a600035045b6001900380600c57 | disasm
 17     DUP1
 18     PUSH1  => 0c
 20     JUMPI
+```
 
 and we can run the loop five times with `evm --debug --code 366020036101000a600035045b6001900380600c57 --input 05`
 or 257 times with `evm --debug --code 366020036101000a600035045b6001900380600c57 --input 0101`.

@@ -53,7 +53,7 @@ func init() {
 	app.Name = filepath.Base(os.Args[0])
 	app.Author = ""
 	app.Email = ""
-	app.Version = "0.3" // persistence
+	app.Version = "0.4" // fixes for persistence
 	app.Usage = "evm command line tool"
 	app.Flags = appFlags
 	app.Action = run
@@ -179,7 +179,9 @@ func run(ctx *cli.Context) error {
 	)
 
 	toBytes := receiverAddress.Bytes()
-	if bytes.Count(toBytes, []byte{0}) == len(toBytes) {
+	emptyTo := bytes.Count(toBytes, []byte{0}) == len(toBytes)
+	// if persistence is active and the destination is empty, this is a create
+	if dataDir != "" && emptyTo {
 		input := append(common.Hex2Bytes(ctx.GlobalString(CodeFlag.Name)), common.Hex2Bytes(ctx.GlobalString(InputFlag.Name))...)
 		ret, contractAddr, err = vmenv.Create(
 			sender,
