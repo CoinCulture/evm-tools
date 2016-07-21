@@ -8,18 +8,18 @@ The EVM is a security oriented virtual machine, designed to permit untrusted cod
 To do so securely, it imposes the following restrictions:
 
 - Every computational step taken in a program's execution must be paid for up front, thereby preventing Denial-of-Service attacks.
-- Programs may only interact with each other by transmitting a single arbitrary-length byte array; they do not have access to eachother's state.
+- Programs may only interact with each other by transmitting a single arbitrary-length byte array; they do not have access to each other's state.
 - Program execution is sandboxed; an EVM program may access and modify its own internal state and may trigger the execution of other EVM programs, but nothing else.
 - Program execution is fully deterministic and produces identical state transitions for any conforming implementation beginning in an identical state.
 
-These restrictions motivated many of the design desicions of the overall Ethereum state transition machine, 
+These restrictions motivated many of the design decisions  of the overall Ethereum state transition machine, 
 and their enforcement is pervasive throughout the [specification](http://gavwood.com/paper.pdf).
 
 ## Overview
 
 The EVM is a stack-based virtual machine with a memory byte-array and key-value storage (persisted in a merkle tree).
 Elements on the stack are 32-byte words, and all keys and values in storage are 32 bytes.
-There are over 100 opcodes, divided into categories deliniated in multiples of 16.
+There are over 100 opcodes, divided into categories delineated in multiples of 16.
 Here is the list from the pyethereum client, annotated with rough category names.
 
 
@@ -145,7 +145,7 @@ The EVM operates on its ephemeral memory via MLOAD and MSTORE, and on its persis
 JUMP can be used to jump to arbitrary points in the program, and those points must be a JUMPDEST.
 The PUSH1-PUSH32 opcodes push anywhere from 1 to 32 bytes to the stack.
 The DUP1-DUP16 opcodes push a duplicate of one of the top 16 elements of the stack to the top of the stack.
-The SWAP1-SWAP16 opcodes swap the top element of the stack with any of the preceeding 16.
+The SWAP1-SWAP16 opcodes swap the top element of the stack with any of the preceding 16.
 The LOG opcodes enable event logging which is recorded in blocks and can be verified efficiently by light clients.
 Finally, CALL and CREATE allow contracts to call and create other contracts, respectively, while RETURN returns a chunk of memory from a call,
 and SUICIDE causes the contract to be destroyed and return all funds to a specified address.
@@ -375,7 +375,7 @@ STORAGE = 0
 OUT: 0x09
 ```
 
-Note how the 32-byte, big endian 0x09 is stored in memory, and how the program finally outputs a `0x09`.
+Note how the 32-byte, Big Endian 0x09 is stored in memory, and how the program finally outputs a `0x09`.
 
 If the arguments we are adding are larger than one byte, we can use a different PUSH operator.
 For instance, to add two-byte numbers like 257 (0x0101) and 258 (0x0102), we use PUSH2 (0x61):
@@ -419,7 +419,7 @@ STORAGE = 0
 
 where `0x0203 = 515 = 257 + 258`
 
-What if we want to pass the arguments as call-data, rather than hardcoding them?
+What if we want to pass the arguments as call-data, rather than hard-coding them?
 We need to first agree on a formatting discipline - say, all input values 
 are left-padded to 32-bytes, for convenience. Then we can do the following:
 
@@ -789,7 +789,7 @@ See `evm --help` for options and defaults.
 
 # Memory and Storage
 
-In addition to the stack, the EVM comes with an emphemeral memory byte-array and persistent storage tree.
+In addition to the stack, the EVM comes with an ephemeral memory byte-array and persistent storage tree.
 Access to the memory byte-array is relatively cheap, and out-of-bounds memory access is not an exception; 
 memory grows as necessary when you access it, you simply pay the gas for the change in size. 
 
@@ -993,7 +993,7 @@ Tada! Try running the code with `--debug` and make sure you can understand every
 
 # Conclusion
 
-That concludes this introducty guide to the Ethereum Virtual Machine.
+That concludes this introductory guide to the Ethereum Virtual Machine.
 Hopefully, you now have a much deeper understanding of how it works,
 and will pass on this knowledge to others, both human and machine,
 to increase the number of people who understand how Ethereum works at a low level
