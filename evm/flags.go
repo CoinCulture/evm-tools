@@ -92,7 +92,7 @@ var (
 	ToFlag = cli.StringFlag{
 		Name:  "to",
 		Usage: "destination address receiving the call",
-		Value: "",
+		Value: common.StringToAddress("receiver").Hex(),
 	}
 
 	// state options
