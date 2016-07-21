@@ -2,12 +2,25 @@
 
 This is a guide to understanding the EVM, its relationship with solidity, and how to use some debugging tools.
 
+## Security
+
+The EVM is a security oriented software design. It is designed to permit untrusted code to be run by a global network of computers with the following safety guarantees.
+
+- Consumption of compute resources is managed and constrained by gas and thus protects against denial of service attacks
+- EVM programs can only interact with each other through the exposed Ethereum ABI and cannot directly access or modify program state
+- Program execution is sandboxed so the programs can only access and modify contract state and interact with the other programs through the ABI
+- Program execution is fully deterministic and produces identical state transitions for any conforming implementation.
+
+The mechanisms of these guarantees are provided is pervasive through the specification.
+
+
 ## Overview
 
 The EVM is a stack-based virtual machine with a memory byte-array and key-value storage (persisted in a merkle tree).
 Elements on the stack are 32-byte words, and all keys and values in storage are 32 bytes.
 There are over 100 opcodes, divided into categories deliniated in multiples of 16.
 Here is the list from the pyethereum client, annotated with rough category names.
+
 
 ```python
 # schema: [opcode, ins, outs, gas]
