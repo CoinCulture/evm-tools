@@ -4,15 +4,16 @@ This is a guide to understanding the EVM, its relationship with solidity, and ho
 
 ## Security
 
-The EVM is a security oriented software design. It is designed to permit untrusted code to be run by a global network of computers with the following safety guarantees.
+The EVM is a security oriented virtual machine, designed to permit untrusted code to be executed by a global network of computers.
+To do so securely, it imposes the following restrictions:
 
-- Consumption of compute resources is managed and constrained by gas and thus protects against denial of service attacks
-- EVM programs can only interact with each other through the exposed Ethereum ABI and cannot directly access or modify program state
-- Program execution is sandboxed so the programs can only access and modify contract state and interact with the other programs through the ABI
-- Program execution is fully deterministic and produces identical state transitions for any conforming implementation.
+- Every computational step taken in a program's execution must be paid for up front, thereby preventing Denial-of-Service attacks.
+- Programs may only interact with each other by transmitting a single arbitrary-length byte array; they do not have access to eachother's state.
+- Program execution is sandboxed; an EVM program may access and modify its own internal state and may trigger the execution of other EVM programs, but nothing else.
+- Program execution is fully deterministic and produces identical state transitions for any conforming implementation beginning in an identical state.
 
-The mechanisms of these guarantees are provided is pervasive through the specification.
-
+These restrictions motivated many of the design desicions of the overall Ethereum state transition machine, 
+and their enforcement is pervasive throughout the [specification](http://gavwood.com/paper.pdf).
 
 ## Overview
 
