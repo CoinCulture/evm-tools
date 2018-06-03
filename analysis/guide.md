@@ -12,7 +12,7 @@ To do so securely, it imposes the following restrictions:
 - Program execution is sandboxed; an EVM program may access and modify its own internal state and may trigger the execution of other EVM programs, but nothing else.
 - Program execution is fully deterministic and produces identical state transitions for any conforming implementation beginning in an identical state.
 
-These restrictions motivated many of the design decisions  of the overall Ethereum state transition machine, 
+These restrictions motivated many of the design decisions  of the overall Ethereum state transition machine,
 and their enforcement is pervasive throughout the [specification](http://gavwood.com/paper.pdf).
 
 ## Overview
@@ -57,7 +57,7 @@ opcodes = {
 
     # crypto
     0x20: ['SHA3', 2, 1, 30],
-    
+
     # contract context
     0x30: ['ADDRESS', 0, 1, 2],
     0x31: ['BALANCE', 1, 1, 20],
@@ -80,7 +80,7 @@ opcodes = {
     0x43: ['NUMBER', 0, 1, 2],
     0x44: ['DIFFICULTY', 0, 1, 2],
     0x45: ['GASLIMIT', 0, 1, 2],
-  
+
     # storage and execution
     0x50: ['POP', 1, 0, 2],
     0x51: ['MLOAD', 1, 1, 3],
@@ -101,7 +101,7 @@ opcodes = {
     0xa2: ['LOG2', 4, 0, 1125],
     0xa3: ['LOG3', 5, 0, 1500],
     0xa4: ['LOG4', 6, 0, 1875],
-	
+
     # arbitrary length storage (proposal for metropolis hardfork)
     0xe1: ['SLOADBYTES', 3, 0, 50],
     0xe2: ['SSTOREBYTES', 3, 0, 0],
@@ -130,15 +130,15 @@ The table tells us how many arguments each opcode pops off the stack and pushes 
 as well as how much gas is consumed. In addition
 Most opcodes take some number of arguments off the stack, and push one or no results back onto the stack.
 Some, like GAS and PC, take no arguments off the stack, and push the remaining gas and program counter,
-respectively, onto the stack. 
-A number of opcodes, like SHA3, CREATE, and RETURN, take arguments off the stack that refer to 
+respectively, onto the stack.
+A number of opcodes, like SHA3, CREATE, and RETURN, take arguments off the stack that refer to
 positions and sizes in memory, allowing them to operate on a contiguous array of memory.
 Each
 
 All arithmetic happens on big integers using elements on the stack (ie. 32-byte Big Endian integers).
-Currently, the only crypto operation is the SHA3 hash function, 
+Currently, the only crypto operation is the SHA3 hash function,
 which takes a position in memory and a length to read input from and outputs the hash on the stack.
-Contract and blockchain level contexts give access to various useful environmental information - 
+Contract and blockchain level contexts give access to various useful environmental information -
 for instance CALLDATACOPY will copy the input data sent to the contract (known as call-data) into memory, and NUMBER can be used
 to time-lock behaviour by block number.
 The EVM operates on its ephemeral memory via MLOAD and MSTORE, and on its persistent storage via SLOAD and SSTORE.
@@ -150,14 +150,14 @@ The LOG opcodes enable event logging which is recorded in blocks and can be veri
 Finally, CALL and CREATE allow contracts to call and create other contracts, respectively, while RETURN returns a chunk of memory from a call,
 and SUICIDE causes the contract to be destroyed and return all funds to a specified address.
 
-The specification for each opcode can be found in the [yellow paper](http://gavwood.com/paper.pdf)([source on github](https://github.com/ethereum/yellowpaper)), 
+The specification for each opcode can be found in the [yellow paper](http://gavwood.com/paper.pdf)([source on github](https://github.com/ethereum/yellowpaper)),
 or in the implementation of the EVM in your favorite language.
 
-Note the EVM is redundantly Turing complete - 
+Note the EVM is redundantly Turing complete -
 it has both the primitives of a Turing tape (ops for managing memory and jumping to arbitrary points in the program),
-and those of an agent-based message passing system, 
+and those of an agent-based message passing system,
 where agents may have arbitrary code (ops for calling and creating other contracts, returning values).
-To force all executions to terminate, each operation is tagged with an explicit cost, denominated in *gas*. 
+To force all executions to terminate, each operation is tagged with an explicit cost, denominated in *gas*.
 Executions must specify a maximum amount of gas, such that using more than that amount throws an OutOfGas exception.
 The list of opcodes specifies how much gas each opcode consumes. In addition, certain operations consume amounts of gas
 that are parameterized by the following (see the yellow paper for more details):
@@ -196,7 +196,7 @@ GSUICIDEREFUND = 24000
 ```
 
 Other exceptions, besides out-of-gas, include invalid op codes, stack underflow, and invalid jump destinations.
-There is also a stack size limit, such that the stack can only be so big, 
+There is also a stack size limit, such that the stack can only be so big,
 and a call-depth limit, such that chains of calls from contracts to other contracts can only be so long,
 for instance causing recursive invocations of a contract to eventually halt, despite the amount of gas provided.
 Ethereum transactions are atomic - if an exception is thrown, all state transitions are reverted.
@@ -206,9 +206,9 @@ a significant DoS attack vector against miners.
 
 # Execution
 
-Let us look at some simple executions. To do so, I have collected some useful tools in a single repo, 
-including forks of some nice nice tools provided by go-ethereum. 
-Make sure you have Go installed, set your `GOPATH` environment variable to whatever you want, 
+Let us look at some simple executions. To do so, I have collected some useful tools in a single repo,
+including forks of some nice nice tools provided by go-ethereum.
+Make sure you have Go installed, set your `GOPATH` environment variable to whatever you want,
 and add `$GOPATH/bin` to your `PATH`. Then run:
 
 ```
@@ -217,7 +217,7 @@ go get github.com/ebuchman/evm-tools/...
 
 This will install the following tools, now accessible from $GOPATH/bin: `evm`, `disasm`, `evm-deploy`.
 
-If you already have the tools installed, but something doesn't work, update to the latest with 
+If you already have the tools installed, but something doesn't work, update to the latest with
 
 ```
 cd $GOPATH/src/github.com/ebuchman/evm-tools
@@ -231,12 +231,12 @@ We also use some python, and in particular the `sha3` and `rlp` packages:
 pip install pysha3 rlp
 ```
 
-Note there are two incompatible versions of `sha3`, 
-and Ethereum uses the `Keccak` version, so make sure you have the right one. 
+Note there are two incompatible versions of `sha3`,
+and Ethereum uses the `Keccak` version, so make sure you have the right one.
 You can verify with:
 
 ```
-$ python -c "import sha3; print sha3.sha3_256('').hexdigest()"
+$ python -c "import sha3; print(sha3.sha3_256('').hexdigest())"
 c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
 ```
 
@@ -256,7 +256,7 @@ To disassemble, run `echo 6005600401 | disasm`, which produces:
 
 So, this simple program pushes the numbers `05` and `04` to the stack and adds them.
 
-We can run it through the EVM with `evm --debug --code 6005600401`, we get something like:
+We can run it through the EVM with `evm --debug --code 6005600401 run`, we get something like:
 
 ```
 VM STAT 4 OPs
@@ -285,7 +285,7 @@ MEM = 0
 STORAGE = 0
 ```
 
-The `--debug` flag prints the current state of the stack, memory, and storage for us at each step, 
+The `--debug` flag prints the current state of the stack, memory, and storage for us at each step,
 and shows us each opcode and the gas cost. Note how the 0x04 and 0x05 are pushed to the stack (padded to 32-bytes)
 and consumed by ADD, which leaves the result, 0x09, on the stack.
 To have the value returned, instead of simply left on the stack,
@@ -304,14 +304,14 @@ $ echo 60056004016000526001601ff3  | disasm
 12     RETURN
 ```
 
-The value (0x09) is being stored in memory at position 0x0. 
-However, since the element being stored comes from the stack, 
+The value (0x09) is being stored in memory at position 0x0.
+However, since the element being stored comes from the stack,
 it is a 32-byte word, the Big Endian encoding (ie. left-padded with zeros) of 0x09.
 So, to return just `0x09`, we return a byte-array of length 0x01, starting from position 0x1f.
-Alternatively, we could return a byte-array of length 0x20 starting from position 0x00 - 
+Alternatively, we could return a byte-array of length 0x20 starting from position 0x00 -
 then the returned value would be left-padded with zeroes to 32-bytes.
 
-Run the above code with `evm --debug --code 60056004016000526001601ff3`:
+Run the above code with `evm --debug --code 60056004016000526001601ff3 run`:
 
 ```
 VM STAT 8 OPs
@@ -388,7 +388,7 @@ $ echo 61010161010201 | disasm
 6      ADD
 ```
 
-And the execution `evm --debug --code 61010161010201` gives
+And the execution `evm --debug --code 61010161010201 run` gives
 
 ```
 VM STAT 4 OPs
@@ -420,7 +420,7 @@ STORAGE = 0
 where `0x0203 = 515 = 257 + 258`
 
 What if we want to pass the arguments as call-data, rather than hard-coding them?
-We need to first agree on a formatting discipline - say, all input values 
+We need to first agree on a formatting discipline - say, all input values
 are left-padded to 32-bytes, for convenience. Then we can do the following:
 
 ```
@@ -479,7 +479,7 @@ STORAGE = 0
 What if you want your program to have multiple possible functions?
 The combination of these problems, of formatting call-data and calling
 one of many functions, gave rise to an [Application Binary Interface (ABI)
-standard](https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI), 
+standard](https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI),
 respected by the high-level programming languages (solidity, serpent, etc.).
 We will discuss this later.
 
@@ -506,21 +506,21 @@ $ echo  6000356000525b600160005103600052600051600657 | disasm
 21     JUMPI
 ```
 
-Here, we load some value (the counter) from the call-data and loop that many times 
+Here, we load some value (the counter) from the call-data and loop that many times
 by storing the counter in memory (at position 0x0) and decrementing on each pass through the loop.
-The loop essentially starts at the `JUMPDEST`. The final opcode, `JUMPI`, takes a value and a location, 
-and if the value is non-zero, jumps to the location in the program. If the location is not a `JUMPDEST`, 
+The loop essentially starts at the `JUMPDEST`. The final opcode, `JUMPI`, takes a value and a location,
+and if the value is non-zero, jumps to the location in the program. If the location is not a `JUMPDEST`,
 the execution throws an exception. In this case, the `JUMPDEST` is at position `0x06`,
 and the value it checks is the counter variable, loaded from memory.
 
-Run the loop five times with 
+Run the loop five times with
 `evm --debug --code 6000356000525b600160005103600052600051600657 --input 0000000000000000000000000000000000000000000000000000000000000005`
 See if you can decipher the code - look for the counter variable decrementing in memory.
 
 What happens if we run the code without any input, or with an input of zero? Will the loop run zero times?
 Why or why not? (HINT: the EVM has no notion of negative numbers, so -1 is really `2^256 - 1` or `0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff`). To solve this, check if the input value is zero before entering the loop (hint: use ISZERO).
 
-Note there is a significant inefficiency here in our use of memory, since we are constantly loading from, 
+Note there is a significant inefficiency here in our use of memory, since we are constantly loading from,
 then storing to, the same spot in memory multiple times.
 Instead of accessing the memory-byte array, we could just keep what we need on the stack, using the DUP and SWAP opcodes.
 The solidity compiler makes these kinds of optimizations all the time. Here is the loop without using memory:
@@ -539,9 +539,9 @@ $ echo 6000355b6001900380600357 | disasm
 11     JUMPI
 ```
 
-Much simpler! The SWAP makes sure the counter (the value to be decremented) is at the top of the stack, 
+Much simpler! The SWAP makes sure the counter (the value to be decremented) is at the top of the stack,
 which is what the SUB opcode expects.
-The DUP1 is used to duplicate the counter on the stack, so it can be consumed by JUMPI and still available 
+The DUP1 is used to duplicate the counter on the stack, so it can be consumed by JUMPI and still available
 for subtraction the next time through the loop. Otherwise, the loop works exactly the same way.
 Note, also, that since we do not store the counter to memory before the loop starts, the JUMPDEST is
 at position 0x03 instead of 0x06.
@@ -552,12 +552,12 @@ and watch the counter persist and decrement on the stack, instead of in memory.
 
 One more improvement before moving on. Passing a 32-byte padded input string is awful;
 the call-data should be only as big as it needs to be. In this case, we would like a loop of 5 times to be called with
-`--input 05` and one that run 257 times with `--input 0101`. 
-Problem is, CALLDATALOAD loads 32-byte big-endian numbers, so `--input 05` 
+`--input 05` and one that run 257 times with `--input 0101`.
+Problem is, CALLDATALOAD loads 32-byte big-endian numbers, so `--input 05`
 becomes the massive `0500000000000000000000000000000000000000000000000000000000000000` on the stack.
 Since there is no byte shifting operator in the EVM, we have to use division.
 In this case, we want to divide by `256^(32-L)`, where `L` is the length of the call-data.
-This has the effect of byte-shifting to the right by `(32-L)` bytes. 
+This has the effect of byte-shifting to the right by `(32-L)` bytes.
 The updated byte-code looks like:
 
 ```
@@ -590,12 +590,12 @@ used extensively by the higher level languages.
 So far, we have only looked at the base execution environment of the EVM.
 But the EVM is embedded in a blockchain state divided into accounts.
 All accounts in ethereum are stored in a merkle radix tree.
-Programs in the EVM live in *accounts* known as *contracts*. 
+Programs in the EVM live in *accounts* known as *contracts*.
 In addition to an address, a balance, and a sequence number (equal to the number of transactions sent by the account - also known as a nonce),
 contracts keep the hash of their EVM bytecode, and the merkle root of their internal storage tree.
-An account can have at most one program associated with it - 
-any time a transaction is made to the contract, or it is the target of another contract executing the CALL opcode, 
-the code of that contract will execute. 
+An account can have at most one program associated with it -
+any time a transaction is made to the contract, or it is the target of another contract executing the CALL opcode,
+the code of that contract will execute.
 Note that once deployed, the code of a contract may not be changed.
 The merkle root of the account/contract storage is updated after any successful transaction where execution of the SSTORE opcode results
 in a value being stored at a new key or a change to the value stored at an existing key.
@@ -606,14 +606,14 @@ running the program specified in the call-data, and setting whatever is returned
 That is, the code sent during creation is not the same as that which will be stored in the contract - it is instead the so called
 "deploy-code", which contains the actual contract code wrapped in some operations that will copy it into memory and return it.
 
-For instance, if we take one of the programs we have written (that does not return anything) and send it as data to the empty address, 
+For instance, if we take one of the programs we have written (that does not return anything) and send it as data to the empty address,
 the program will execute, but the resulting account will have no code, so any transactions to that account will cause no code to run.
 
-Looking at the simple addition program `6005600401` as an example, 
+Looking at the simple addition program `6005600401` as an example,
 we can generate the deploy with the `evm-deploy` tool:
 
 ```
-$ echo 6005600401 | evm-deploy | disasm 
+$ echo 6005600401 | evm-deploy | disasm
 600580600b6000396000f36005600401
 0      PUSH1  => 05
 2      DUP1
@@ -627,9 +627,9 @@ $ echo 6005600401 | evm-deploy | disasm
 15     ADD
 ```
 
-Here, we know the program of interest is length `0x05`, and we know it is embedded in the larger deploy-code, 
-starting at position 11 (0x0b). So we copy this chunk of code into memory (position 0x00) and return it. 
-Note that using the `DUP1` keeps the length of the code (in this case, 0x05) on the stack for both the CODECOPY and the RETURN. 
+Here, we know the program of interest is length `0x05`, and we know it is embedded in the larger deploy-code,
+starting at position 11 (0x0b). So we copy this chunk of code into memory (position 0x00) and return it.
+Note that using the `DUP1` keeps the length of the code (in this case, 0x05) on the stack for both the CODECOPY and the RETURN.
 When the deploy-code is run, the return value should be the code of interest, ie. `6005600401`:
 
 ```
@@ -690,15 +690,15 @@ STORAGE = 0
 OUT: 0x6005600401
 ```
 
-Tada! 
+Tada!
 
 
 # Stateful EVM
 
-I made some modifications to the `evm` tool so it can persist state between invocations. 
+I made some modifications to the `evm` tool so it can persist state between invocations.
 Just use the `--datadir` flag.
 For instance, let us use the contract that returns the sum of 0x5 and 0x4.
-We can run the deploy code, so the contract is actually deployed 
+We can run the deploy code, so the contract is actually deployed
 (an account created with the correct code) and then we can interact with it:
 
 ```
@@ -721,7 +721,7 @@ and the sequence number starts at `0x0`. In python:
 '1f2a98889594024bffda3311cbe69728d392c06d'
 ```
 
-Note this means the address is strictly deterministic starting from the same state. 
+Note this means the address is strictly deterministic starting from the same state.
 If we deploy the contract, again, the sequence number of the sender will be 0x1:
 
 ```
@@ -764,25 +764,25 @@ Here are some examples of exceptions.
 Invalid opcode (`5f` is not a known opcode):
 
 ```
-evm --debug --code 5f
+evm --debug --code 5f run
 ```
 
 Stack underflow (`JUMP` (0x56) expects at least one argument on the stack):
 
 ```
-evm --debug --code 56
+evm --debug --code 56 run
 ```
 
 Invalid jump destination (the destination 0x0 is not a `JUMPDEST`, in this case its a `PUSH`):
 
 ```
-evm --debug --code 600056
+evm --debug --code 600056 run
 ```
 
 Here's an out-of-gas exception (`PUSH` requires 3 gas):
 
 ```
-evm --debug --gas 1 --code 6000
+evm --debug --gas 1 --code 6000 run
 ```
 
 See `evm --help` for options and defaults.
@@ -790,22 +790,22 @@ See `evm --help` for options and defaults.
 # Memory and Storage
 
 In addition to the stack, the EVM comes with an ephemeral memory byte-array and persistent storage tree.
-Access to the memory byte-array is relatively cheap, and out-of-bounds memory access is not an exception; 
-memory grows as necessary when you access it, you simply pay the gas for the change in size. 
+Access to the memory byte-array is relatively cheap, and out-of-bounds memory access is not an exception;
+memory grows as necessary when you access it, you simply pay the gas for the change in size.
 
-For instance, accessing memory location 0x1000 costs us quite a lot the first time, 
+For instance, accessing memory location 0x1000 costs us quite a lot the first time,
 since the memory grows from size 0 to size 4096, and very little the second time, since
 the size of the memory doesn't change:
 
 ```
-evm --debug --code 611000805151
+evm --debug --code 611000805151 run
 ```
 
 The storage size is practically infinite, or `2^256`, but is relatively expensive, at `20000` gas when writing a non-zero where there was previously a zero,
 and `5000` otherwise. For instance, we store a 0x2 at position 0x0, then overwrite it with a 0x1:
 
 ```
-evm --debug --code 60026000556001600055
+evm --debug --code 60026000556001600055 run
 ```
 
 # Solidity
@@ -813,7 +813,7 @@ evm --debug --code 60026000556001600055
 Finally, we can talk about solidity. Solidity is a high-level, javascript-like, contract-oriented language
 that compiles to EVM. It has many high-level features not found directly in the EVM, like types, arrays, and function calls.
 It also conforms to the Ethereum ABI, a specification for how arguments and function calls should be encoded in the call-data.
-In summary, the first four bytes of the call-data are the function identifier, 
+In summary, the first four bytes of the call-data are the function identifier,
 corresponding to the first four bytes of the sha3 hash of the canonical version of the function signature.
 The rest of the arguments are passed in padded to 32-bytes.
 
@@ -833,7 +833,7 @@ Now we run the docker container (if you don't already have the eris/compilers im
 docker run --name solc -v $SOLC_WORKSPACE:/home/eris/.eris -it quay.io/eris/compilers /bin/bash
 ```
 
-The result of this command is to drop you in a container with the solidity compiler installed, 
+The result of this command is to drop you in a container with the solidity compiler installed,
 where the directory `$SOLC_WORKSPACE` is mounted into the container at /home/eris/.eris
 so that any new files or edits made in `$SOLC_WORKSPACE` will be reflected immediately in the container.
 Run `solc --help` to ensure the compiler is properly installed.
@@ -867,7 +867,7 @@ solc --bin-runtime --optimize -o . add.sol
 
 In the host terminal session, you should see the contract under `$SOLC_WORKSPACE/Addition.bin-runtime`.
 
-By using `--bin-runtime`, we get the code as it would be in the contract after having been deployed - 
+By using `--bin-runtime`, we get the code as it would be in the contract after having been deployed -
 we can test that with the `evm` tool. If we use `--bin` instead of `--bin-runtime`, and run that
 through the `evm`, the output from the evm should be the same as the output from the compiler when using `--bin-runtime`,
 ie. the return value of a contract compiled with `--bin` is the contract compiled with `--bin-runtime`.
@@ -875,7 +875,7 @@ ie. the return value of a contract compiled with `--bin` is the contract compile
 Let's disassemble the solidity contract:
 
 ```
-$ echo $(cat MyContract.bin-runtime)  | disasm 
+$ echo $(cat MyContract.bin-runtime)  | disasm
 606060405260e060020a6000350463a5f3c23b8114601a575b005b60243560043501600055601856
 0      PUSH1  => 60
 2      PUSH1  => 40
@@ -905,7 +905,7 @@ $ echo $(cat MyContract.bin-runtime)  | disasm
 39     JUMP
 ```
 
-The addition itself happens towards the bottom. Note that just before the ADD, with the CALLDATALOADs, we are loading 32-byte arguments 
+The addition itself happens towards the bottom. Note that just before the ADD, with the CALLDATALOADs, we are loading 32-byte arguments
 from positions 0x04 and 0x24 of the call-data, rather than 0x00 and 0x20, to make room in the first four bytes for the function identifier.
 In this case, as you might guess, the function identifier for our sole function is `a5f3c23b`.
 Everything before line 26 in the code is dealing with checking whether or not the first four bytes of the call-data equal `a5f3c23b` -
@@ -970,7 +970,7 @@ Finally, let's call the `get` function. First, we get the functionid from solc:
 ```
 $ solc --hashes add.sol
 ======= Addition =======
-Function signatures: 
+Function signatures:
 6d4ce63c: get()
 a5f3c23b: add(int256,int256)
 ```
