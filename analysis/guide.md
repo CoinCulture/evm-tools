@@ -133,7 +133,6 @@ Some, like GAS and PC, take no arguments off the stack, and push the remaining g
 respectively, onto the stack. 
 A number of opcodes, like SHA3, CREATE, and RETURN, take arguments off the stack that refer to 
 positions and sizes in memory, allowing them to operate on a contiguous array of memory.
-Each
 
 All arithmetic happens on big integers using elements on the stack (ie. 32-byte Big Endian integers).
 Currently, the only crypto operation is the SHA3 hash function, 
