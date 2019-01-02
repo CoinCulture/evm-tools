@@ -225,10 +225,13 @@ git pull origin master
 go install disasm evm evm-deploy
 ```
 
-We also use some python, and in particular the `sha3` and `rlp` packages:
+We also use some python, and in particular the `sha3` and `rlp` packages.
+It's recommended to use `virtualenv` for installing them, with specific versions:
 
 ```
-pip install pysha3 rlp
+virtualenv evm-tools
+source evm-tools/bin/activate
+pip install pysha3==0.3 rlp==0.6.0
 ```
 
 Note there are two incompatible versions of `sha3`, 
@@ -239,6 +242,8 @@ You can verify with:
 $ python -c "import sha3; print sha3.sha3_256('').hexdigest()"
 c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
 ```
+
+More recent versions of the `sha3` package have a different API.
 
 Now, here is some very simple bytecode I wrote:
 
