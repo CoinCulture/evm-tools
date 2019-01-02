@@ -17,7 +17,7 @@ and their enforcement is pervasive throughout the [specification](http://gavwood
 
 ## Overview
 
-The EVM is a stack-based virtual machine with a memory byte-array and key-value storage (persisted in a merkle tree).
+The EVM is a stack-based virtual machine with an ephemeral memory byte-array and persistent key-value storage (persisted in a Merkle tree).
 Elements on the stack are 32-byte words, and all keys and values in storage are 32 bytes.
 There are over 100 opcodes, divided into categories delineated in multiples of 16.
 Here is the list from the pyethereum client, annotated with rough category names.
@@ -127,7 +127,7 @@ for i in range(1, 17):
 ```
 
 The table tells us how many arguments each opcode pops off the stack and pushes back onto the stack,
-as well as how much gas is consumed. In addition
+as well as how much gas is consumed.
 Most opcodes take some number of arguments off the stack, and push one or no results back onto the stack.
 Some, like GAS and PC, take no arguments off the stack, and push the remaining gas and program counter,
 respectively, onto the stack. 
@@ -135,21 +135,24 @@ A number of opcodes, like SHA3, CREATE, and RETURN, take arguments off the stack
 positions and sizes in memory, allowing them to operate on a contiguous array of memory.
 
 All arithmetic happens on big integers using elements on the stack (ie. 32-byte Big Endian integers).
-Currently, the only crypto operation is the SHA3 hash function, 
-which takes a position in memory and a length to read input from and outputs the hash on the stack.
+Currently, the only crypto operation is the SHA3 hash function, which takes an
+arbitrary length byte-array from memory (specified by an initial position in
+memory and a length) and outputs the hash on the stack.
 Contract and blockchain level contexts give access to various useful environmental information - 
 for instance CALLDATACOPY will copy the input data sent to the contract (known as call-data) into memory, and NUMBER can be used
 to time-lock behaviour by block number.
+
 The EVM operates on its ephemeral memory via MLOAD and MSTORE, and on its persistent storage via SLOAD and SSTORE.
-JUMP can be used to jump to arbitrary points in the program, and those points must be a JUMPDEST.
+JUMP can be used to jump to arbitrary points in the program, where those points must be a JUMPDEST.
 The PUSH1-PUSH32 opcodes push anywhere from 1 to 32 bytes to the stack.
 The DUP1-DUP16 opcodes push a duplicate of one of the top 16 elements of the stack to the top of the stack.
 The SWAP1-SWAP16 opcodes swap the top element of the stack with any of the preceding 16.
+
 The LOG opcodes enable event logging which is recorded in blocks and can be verified efficiently by light clients.
 Finally, CALL and CREATE allow contracts to call and create other contracts, respectively, while RETURN returns a chunk of memory from a call,
 and SUICIDE causes the contract to be destroyed and return all funds to a specified address.
 
-The specification for each opcode can be found in the [yellow paper](http://gavwood.com/paper.pdf)([source on github](https://github.com/ethereum/yellowpaper)), 
+The specification for each opcode can be found in the [yellow paper](http://gavwood.com/paper.pdf) ([source on Github](https://github.com/ethereum/yellowpaper)),
 or in the implementation of the EVM in your favorite language.
 
 Note the EVM is redundantly Turing complete - 
@@ -206,7 +209,7 @@ a significant DoS attack vector against miners.
 # Execution
 
 Let us look at some simple executions. To do so, I have collected some useful tools in a single repo, 
-including forks of some nice nice tools provided by go-ethereum. 
+including forks of some nice tools provided by go-ethereum.
 To install the tools, see the [install instructions](/INSTALL.md).
 
 Now, here is some very simple bytecode I wrote:
@@ -276,7 +279,7 @@ $ echo 60056004016000526001601ff3  | disasm
 The value (0x09) is being stored in memory at position 0x0. 
 However, since the element being stored comes from the stack, 
 it is a 32-byte word, the Big Endian encoding (ie. left-padded with zeros) of 0x09.
-So, to return just `0x09`, we return a byte-array of length 0x01, starting from position 0x1f.
+So, to return just the one byte `0x09`, we return a byte-array of length 0x01, starting from position 0x1f.
 Alternatively, we could return a byte-array of length 0x20 starting from position 0x00 - 
 then the returned value would be left-padded with zeroes to 32-bytes.
 
@@ -448,7 +451,7 @@ STORAGE = 0
 What if you want your program to have multiple possible functions?
 The combination of these problems, of formatting call-data and calling
 one of many functions, gave rise to an [Application Binary Interface (ABI)
-standard](https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI), 
+standard](https://solidity.readthedocs.io/en/develop/abi-spec.html),
 respected by the high-level programming languages (solidity, serpent, etc.).
 We will discuss this later.
 
@@ -510,7 +513,7 @@ $ echo 6000355b6001900380600357 | disasm
 
 Much simpler! The SWAP makes sure the counter (the value to be decremented) is at the top of the stack, 
 which is what the SUB opcode expects.
-The DUP1 is used to duplicate the counter on the stack, so it can be consumed by JUMPI and still available 
+The DUP1 is used to duplicate the counter on the stack, so it can be consumed by JUMPI and is still available
 for subtraction the next time through the loop. Otherwise, the loop works exactly the same way.
 Note, also, that since we do not store the counter to memory before the loop starts, the JUMPDEST is
 at position 0x03 instead of 0x06.
@@ -558,15 +561,16 @@ used extensively by the higher level languages.
 
 So far, we have only looked at the base execution environment of the EVM.
 But the EVM is embedded in a blockchain state divided into accounts.
-All accounts in ethereum are stored in a merkle radix tree.
+All accounts in ethereum are stored in a [Merkle radix
+tree](https://easythereentropy.wordpress.com/2014/06/04/understanding-the-ethereum-trie/).
 Programs in the EVM live in *accounts* known as *contracts*. 
 In addition to an address, a balance, and a sequence number (equal to the number of transactions sent by the account - also known as a nonce),
-contracts keep the hash of their EVM bytecode, and the merkle root of their internal storage tree.
+contracts keep the hash of their EVM bytecode, and the Merkle root of their internal storage tree.
 An account can have at most one program associated with it - 
 any time a transaction is made to the contract, or it is the target of another contract executing the CALL opcode, 
 the code of that contract will execute. 
 Note that once deployed, the code of a contract may not be changed.
-The merkle root of the account/contract storage is updated after any successful transaction where execution of the SSTORE opcode results
+The Merkle root of the account/contract storage is updated after any successful transaction where execution of the SSTORE opcode results
 in a value being stored at a new key or a change to the value stored at an existing key.
 
 Contract creation happens in a special way, by sending a transaction to the empty address with the contract code as data.
@@ -579,7 +583,7 @@ For instance, if we take one of the programs we have written (that does not retu
 the program will execute, but the resulting account will have no code, so any transactions to that account will cause no code to run.
 
 Looking at the simple addition program `6005600401` as an example, 
-we can generate the deploy with the `evm-deploy` tool:
+we can generate the deploy-code with the `evm-deploy` tool:
 
 ```
 $ echo 6005600401 | evm-deploy | disasm 
@@ -679,7 +683,8 @@ VM STAT 0 OPs
 OUT: 0x60056004016000526001601ff3
 ```
 
-Note it gave us the new contract address. Where did this address come from?
+Note it gave us the new contract address
+(`1F2A98889594024BFFDA3311CBE69728D392C06D`). Where did this address come from?
 It is the sha3 hash of the [RLP](https://github.com/ethereum/wiki/wiki/RLP) encoding of the list `[address of sender, sequence number of sender]`.
 The default sender is `0x000000000000000000000000000073656e646572` (that is hex for `sender`),
 and the sequence number starts at `0x0`. In python:
@@ -724,7 +729,7 @@ VM STAT 0 OPs
 OUT: 0x09
 ```
 
-Woopie!
+Notice how it returned `0x09`. Woopie!
 
 # Exceptions
 
@@ -779,7 +784,7 @@ evm --debug --code 60026000556001600055
 
 # Solidity
 
-Finally, we can talk about solidity. Solidity is a high-level, javascript-like, contract-oriented language
+Finally, we can talk about solidity. Solidity is a high-level, Javascript-like, contract-oriented language
 that compiles to EVM. It has many high-level features not found directly in the EVM, like types, arrays, and function calls.
 It also conforms to the Ethereum ABI, a specification for how arguments and function calls should be encoded in the call-data.
 In summary, the first four bytes of the call-data are the function identifier, 
@@ -838,7 +843,7 @@ In the host terminal session, you should see the contract under `$SOLC_WORKSPACE
 
 By using `--bin-runtime`, we get the code as it would be in the contract after having been deployed - 
 we can test that with the `evm` tool. If we use `--bin` instead of `--bin-runtime`, and run that
-through the `evm`, the output from the evm should be the same as the output from the compiler when using `--bin-runtime`,
+through the `evm`, the output should be the same as the output from the compiler when using `--bin-runtime`,
 ie. the return value of a contract compiled with `--bin` is the contract compiled with `--bin-runtime`.
 
 Let's disassemble the solidity contract:
