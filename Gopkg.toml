@@ -27,7 +27,7 @@
 
 [[constraint]]
   name = "github.com/ethereum/go-ethereum"
-  version = "1.4.10"
+  version = "=1.4.10"
 
 [[constraint]]
   name = "gopkg.in/urfave/cli.v1"
@@ -36,6 +36,11 @@
 [[override]]
   name = "github.com/rjeczalik/notify"
   version = "0.9.2"
+
+[[override]]
+  name = "gopkg.in/fatih/set.v0"
+  source = "github.com/fatih/set"
+  version = "=0.1.0"
 
 [prune]
   go-tests = true

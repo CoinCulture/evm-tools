@@ -31,35 +31,47 @@
   version = "v1.4.10"
 
 [[projects]]
-  digest = "1:f22f8c790420b7a6ef3934b4d205954f8fe3fb25dc381d21ab2611ff8237b3f7"
+  branch = "master"
+  digest = "1:6027b20c168728321bd99ad01f35118eded457b01c03e647a84833ab331f2f5b"
   name = "github.com/golang/snappy"
   packages = ["."]
   pruneopts = "T"
-  revision = "799c780093d646c1b79d30894e22512c319fa137"
+  revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
 
 [[projects]]
-  digest = "1:3f90d23757c18b1e07bf11494dbe737ee2c44d881c0f41e681611abdadad62fa"
+  digest = "1:236d7e1bdb50d8f68559af37dbcf9d142d56b431c9b2176d41e2a009b664cda8"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
+  version = "v1.1.0"
+
+[[projects]]
+  digest = "1:8ec8d88c248041a6df5f6574b87bc00e7e0b493881dad2e7ef47b11dc69093b5"
   name = "github.com/hashicorp/golang-lru"
   packages = [
     ".",
     "simplelru",
   ]
   pruneopts = "T"
-  revision = "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4"
+  revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
+  version = "v0.5.0"
 
 [[projects]]
-  digest = "1:0ac0af69bcb472eb27556c8b7d00e65d0b871d732e9f2301a01bbfa686190ae4"
+  digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
   name = "github.com/pborman/uuid"
   packages = ["."]
   pruneopts = "T"
-  revision = "0f1a46960a86dcdf5dd30d3e6568a497a997909f"
+  revision = "adf5a7427709b9deb95d29d3fa8a2bf9cfd388f1"
+  version = "v1.2"
 
 [[projects]]
-  digest = "1:d0fff162c37d0e803cb7d774be508539e2ea8cd0808aedf5c0c45e5ed479b035"
+  branch = "master"
+  digest = "1:4e1e0e562188a53d5301f2ce0590c1de08ec8820f508fc25cac37ea439e6a914"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
   pruneopts = "T"
-  revision = "51425a2415d21afadfd55cd93432c0bc69e9598d"
+  revision = "3113b8401b8a98917cde58f8bbd42a1b1c03b1fd"
 
 [[projects]]
   digest = "1:9787d2d3220cbfd444596afd03ab0abcf391df169b789fbe3eae27fa2e426cf6"
@@ -70,7 +82,8 @@
   version = "v0.9.2"
 
 [[projects]]
-  digest = "1:ca7a4ca98a1307c7765a4f084d0157194b19a576c7f859261f6b5e88c55243d1"
+  branch = "master"
+  digest = "1:7b17050757aaa2f52fcc582125d7abaf5fc2ff273bf023da0c4f98e6f2ebed5f"
   name = "github.com/syndtr/goleveldb"
   packages = [
     "leveldb",
@@ -87,10 +100,11 @@
     "leveldb/util",
   ]
   pruneopts = "T"
-  revision = "917f41c560270110ceb73c5b38be2a9127387071"
+  revision = "b001fa50d6b27f3f0bb175a87d0cb55426d0a0ae"
 
 [[projects]]
-  digest = "1:0f2b2cb9f84318c0f71fed3087ff9ac370370f842469b71b00348c3d72a19b44"
+  branch = "master"
+  digest = "1:5f6a40f74aa9639cfcdaccb526d14a6a7c18900ea8f339416a43a580beb32c34"
   name = "golang.org/x/crypto"
   packages = [
     "pbkdf2",
@@ -98,22 +112,24 @@
     "scrypt",
   ]
   pruneopts = "T"
-  revision = "1f22c0103821b9390939b6776727195525381532"
+  revision = "ff983b9c42bc9fbf91556e191cc8efb585c16908"
 
 [[projects]]
   branch = "master"
-  digest = "1:66f62c4eb8f33e5fd6d21bb714e90bbea02cdeee4a4c90d819cfe30a23c87676"
+  digest = "1:e0ec4d3e142d98932b3063b804ba2451123d9b66387c5d336014b1149c7c72b8"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "T"
-  revision = "9a3f9b0469bbc6b8802087ae5c0af9f61502de01"
+  revision = "82a175fd1598e8a172e58ebdf5ed262bb29129e5"
 
 [[projects]]
-  digest = "1:a8e4f791273524997b84c571d9488263cc9a1dfb1ec6ca5395c49cbcd843ed05"
+  digest = "1:3ccd10c863188cfe0d936fcfe6a055c95362e43af8e7039e33baade846928e74"
   name = "gopkg.in/fatih/set.v0"
   packages = ["."]
   pruneopts = "T"
-  revision = "27c40922c40b43fe04554d8223a402af3ea333f3"
+  revision = "57907de300222151a123d29255ed17f5ed43fad3"
+  source = "github.com/fatih/set"
+  version = "v0.1.0"
 
 [[projects]]
   branch = "v2"
@@ -124,12 +140,12 @@
   revision = "8dcd6a7f4951f6ff3ee9cbb919a06d8925822e57"
 
 [[projects]]
-  digest = "1:f577edb908ab582a1fee017fb896f88f45176dee07f32d9da8e0b6c22f4aa7d2"
+  digest = "1:a4ef215bd846f9407d095f526879cb232330e1e7a748c70e384f775a6a64fd3e"
   name = "gopkg.in/urfave/cli.v1"
   packages = ["."]
   pruneopts = "T"
-  revision = "0bdeddeeb0f650497d603c4ad7b20cfe685682f6"
-  version = "v1.19.1"
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
 
 [solve-meta]
   analyzer-name = "dep"
