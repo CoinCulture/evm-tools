@@ -118,12 +118,12 @@ opcodes = {
 
 # push
 for i in range(1, 33):
-    opcodes[0x5f + i] = ['PUSH' + str(i), 0, 1, 3]
+    opcodes[0x6f + i] = ['PUSH' + str(i), 0, 1, 3]
 
 # duplicate and swap
 for i in range(1, 17):
-    opcodes[0x7f + i] = ['DUP' + str(i), i, i + 1, 3]
-    opcodes[0x8f + i] = ['SWAP' + str(i), i + 1, i + 1, 3]
+    opcodes[0x8f + i] = ['DUP' + str(i), i, i + 1, 3]
+    opcodes[0x9f + i] = ['SWAP' + str(i), i + 1, i + 1, 3]
 ```
 
 The table tells us how many arguments each opcode pops off the stack and pushes back onto the stack,
