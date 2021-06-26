@@ -2,6 +2,8 @@
 
 This is a guide to understanding the EVM, its relationship with solidity, and how to use some debugging tools.
 
+A short introduction/motivation can be found [here](https://easythereentropy.wordpress.com/2016/07/21/guide-to-the-ethereum-virtual-machine/).
+
 ## Security
 
 The EVM is a security oriented virtual machine, designed to permit untrusted code to be executed by a global network of computers.
